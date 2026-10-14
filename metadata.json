@@ -1,0 +1,6 @@
+{
+  "name": "Stickman Brawl: 50P Battle Royale",
+  "description": "High-stakes 50-player stickman martial combat melee battle royale arena featuring tactical HUD, real-time 3D combat kinematics, and dynamic storm zones.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
