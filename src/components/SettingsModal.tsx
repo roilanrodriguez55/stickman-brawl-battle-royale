@@ -1,33 +1,47 @@
-import React from 'react';
-import { Volume2, VolumeX, Eye, Shield, Sliders, X } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Volume2, VolumeX, Shield, Sliders, User, X } from 'lucide-react';
 import { soundManager } from '../audio/soundManager';
+import { cleanName, truncateName, validateName } from '../profile/playerProfile';
 
 interface SettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
-  cameraMode: 'cinematic' | 'follow' | 'topdown' | 'orbit';
-  setCameraMode: (mode: 'cinematic' | 'follow' | 'topdown' | 'orbit') => void;
   soundEnabled: boolean;
   setSoundEnabled: (enabled: boolean) => void;
   volume: number;
   setVolume: (v: number) => void;
   difficulty: 'normal' | 'hard' | 'practice';
   setDifficulty: (d: 'normal' | 'hard' | 'practice') => void;
+  playerName: string;
+  onChangeName: (name: string) => void;
+  /** Aviso discreto bajo el campo de nombre, p. ej. si el servidor no guardo el cambio. */
+  nameNotice?: string | null;
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
   isOpen,
   onClose,
-  cameraMode,
-  setCameraMode,
   soundEnabled,
   setSoundEnabled,
   volume,
   setVolume,
   difficulty,
   setDifficulty,
+  playerName,
+  onChangeName,
+  nameNotice,
 }) => {
+  const [nameDraft, setNameDraft] = useState(playerName);
+
+  // Al abrir o cambiar el nombre desde fuera, el borrador vuelve al nombre actual
+  useEffect(() => {
+    setNameDraft(playerName);
+  }, [isOpen, playerName]);
+
   if (!isOpen) return null;
+
+  const validDraft = validateName(nameDraft);
+  const nameChanged = validDraft !== null && validDraft !== playerName;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md">
@@ -47,6 +61,39 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         </div>
 
         <div className="space-y-5 text-sm font-tactical">
+          {/* Player Name */}
+          <div className="space-y-2">
+            <label htmlFor="settings-player-name" className="text-xs font-mono text-slate-300 flex items-center gap-2">
+              <User className="w-4 h-4 text-cyan-glow" />
+              NOMBRE DE JUGADOR
+            </label>
+            <div className="flex items-center gap-2">
+              <input
+                id="settings-player-name"
+                type="text"
+                value={nameDraft}
+                onChange={(e) => setNameDraft(truncateName(e.target.value))}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && nameChanged && validDraft) onChangeName(validDraft);
+                }}
+                className="flex-1 min-w-0 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 focus:border-cyan-glow focus:outline-none text-white font-mono text-xs"
+              />
+              <button
+                onClick={() => {
+                  if (validDraft) onChangeName(validDraft);
+                }}
+                disabled={!nameChanged}
+                className="px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors bg-cyan-glow/20 text-cyan-glow border-cyan-glow/40 hover:bg-cyan-glow/30 disabled:bg-white/5 disabled:text-slate-500 disabled:border-white/10 disabled:cursor-not-allowed"
+              >
+                Guardar
+              </button>
+            </div>
+            <p className="text-[11px] font-mono text-slate-400 min-h-[1rem]">
+              {validDraft === null && [...cleanName(nameDraft)].length < 2 ? 'Escribe al menos 2 caracteres' : ''}
+            </p>
+            {nameNotice && <p className="text-[11px] font-mono text-amber-300">{nameNotice}</p>}
+          </div>
+
           {/* Audio Controls */}
           <div className="space-y-2">
             <div className="flex items-center justify-between text-xs font-mono text-slate-300">
@@ -85,35 +132,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 <span className="text-xs font-mono text-cyan-glow w-9 text-right">{Math.round(volume * 100)}%</span>
               </div>
             )}
-          </div>
-
-          {/* Camera View Mode */}
-          <div className="space-y-2">
-            <label className="text-xs font-mono text-slate-300 flex items-center gap-2">
-              <Eye className="w-4 h-4 text-cyan-glow" />
-              MODO DE CÁMARA
-            </label>
-            <div className="grid grid-cols-2 gap-2">
-              {[
-                { id: 'cinematic', label: 'Cinemática Órbita', desc: 'Vista dinámica' },
-                { id: 'follow', label: 'Tercera Persona', desc: 'Tras el luchador' },
-                { id: 'topdown', label: 'Genial Arena', desc: 'Estrategia 360°' },
-                { id: 'orbit', label: 'Control Libre', desc: 'Arrastrar con mouse' },
-              ].map((cam) => (
-                <button
-                  key={cam.id}
-                  onClick={() => setCameraMode(cam.id as any)}
-                  className={`p-2.5 rounded-xl text-left border transition-all ${
-                    cameraMode === cam.id
-                      ? 'bg-cyan-glow/15 border-cyan-glow text-white shadow-[0_0_12px_rgba(0,240,255,0.2)]'
-                      : 'bg-white/5 border-white/10 text-slate-400 hover:border-white/25 hover:text-slate-200'
-                  }`}
-                >
-                  <div className="font-display tracking-wide text-xs text-white">{cam.label}</div>
-                  <div className="text-[10px] font-mono text-slate-400">{cam.desc}</div>
-                </button>
-              ))}
-            </div>
           </div>
 
           {/* AI Bots Difficulty */}

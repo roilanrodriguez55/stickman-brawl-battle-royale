@@ -8,6 +8,11 @@ export interface Vec3 {
   z: number;
 }
 
+export type GameMode = 'ffa' | 'teams';
+export type MatchType = 'elimination' | 'timed';
+export type BotDifficulty = 'easy' | 'normal' | 'hard';
+export type RoomPhase = 'lobby' | 'fighting' | 'match_end';
+
 export interface PlayerInput {
   seq: number;
   moveX: number; // -1 to 1 (A/D or Stick X)
@@ -15,7 +20,8 @@ export interface PlayerInput {
   jump: boolean;
   dodge: boolean;
   block: boolean;
-  attackId: string | null; // 'jab', 'cross', 'uppercut', 'low_kick', 'roundhouse', 'axe_kick'
+  attackId: string | null; // 'punch' | 'kick' (botones del cliente, el servidor resuelve el ataque) o un id concreto de ATTACKS (bots / compat)
+  cycleTarget?: boolean; // cambiar objetivo (el servidor lo trata por flanco, uno por input)
   timestamp: number;
 }
 
@@ -34,8 +40,11 @@ export type FighterActionState =
   | 'knocked_out';
 
 export interface FighterState {
-  id: string; // 'p1' | 'p2'
+  id: string; // 'f0' .. 'f9'
   name: string;
+  team: number | null; // 0 o 1 en modo teams, null en ffa
+  isBot: boolean;
+  targetId: string | null;
   colorHex: number;
   glowHex: number;
   pos: Vec3;
@@ -55,21 +64,59 @@ export interface FighterState {
   comboDamage: number;
   comboTimer: number;
   lastProcessedSeq: number;
+  kills: number;
+  deaths: number;
+  respawnIn: number | null; // segundos para reaparecer (1 decimal en el snapshot); null si no espera
+}
+
+export interface LobbyEntry {
+  id: string | null; // fighterId asignado, null si es solo espectador
+  name: string;
+  team: number | null;
+  isBot: boolean;
+  isHost: boolean;
+  connected: boolean;
+}
+
+export interface RoomSummary {
+  id: string;
+  name: string;
+  mode: GameMode;
+  matchType: MatchType;
+  humans: number;
+  size: number;
+  phase: RoomPhase;
+  fillBots: boolean;
+  botDifficulty: BotDifficulty;
+  hostName: string;
+  serverId?: string;
+  address?: string;
+  port?: number;
+  discovered?: boolean;
 }
 
 export interface GameSnapshot {
   tick: number;
   timestamp: number;
   roundTimer: number; // seconds left
-  roundState: 'starting' | 'fighting' | 'round_end' | 'match_end';
-  winner: string | null;
-  p1: FighterState;
-  p2: FighterState;
+  roundState: 'lobby' | 'starting' | 'fighting' | 'round_end' | 'match_end';
+  winner: string | null; // ffa: fighterId ganador; teams: 'team0' | 'team1'; 'draw' en empate
+  roomId: string;
+  roomName: string;
+  mode: GameMode;
+  matchType: MatchType;
+  matchSeconds: number; // duracion configurada (elimination: ROUND_SECONDS)
+  size: number;
+  fillBots: boolean;
+  botDifficulty: BotDifficulty;
+  hostId: string | null; // fighterId del host, o null si el host es solo espectador
+  fighters: FighterState[];
+  lobby: LobbyEntry[];
   events: GameEvent[];
 }
 
 export type GameEvent =
   | { type: 'hit'; attackerId: string; victimId: string; attackId: string; damage: number; isBlocked: boolean; pos: Vec3 }
   | { type: 'parry'; defenderId: string; pos: Vec3 }
-  | { type: 'ko'; winnerId: string; loserId: string }
+  | { type: 'ko'; loserId: string; winnerId?: string | null }
   | { type: 'round_start'; roundNumber: number };

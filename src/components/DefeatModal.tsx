@@ -1,20 +1,28 @@
 import React from 'react';
-import { Skull, RotateCcw, Eye } from 'lucide-react';
+import { Skull, RotateCcw, LogOut } from 'lucide-react';
 
 interface DefeatModalProps {
   isOpen: boolean;
-  rank: number;
-  kills: number;
-  onRestart: () => void;
-  onSpectate: () => void;
+  winnerLabel: string;
+  /** Tipo de partida y duracion (texto para la UI) */
+  matchInfo?: string;
+  /** Mis eliminaciones y muertes finales; solo en partidas por tiempo */
+  stats?: { kills: number; deaths: number } | null;
+  isHost: boolean;
+  onRematch: () => void;
+  onBackToLobby: () => void;
+  onLeave: () => void;
 }
 
 export const DefeatModal: React.FC<DefeatModalProps> = ({
   isOpen,
-  rank,
-  kills,
-  onRestart,
-  onSpectate,
+  winnerLabel,
+  matchInfo,
+  stats,
+  isHost,
+  onRematch,
+  onBackToLobby,
+  onLeave,
 }) => {
   if (!isOpen) return null;
 
@@ -34,35 +42,47 @@ export const DefeatModal: React.FC<DefeatModalProps> = ({
           HAS CAÍDO
         </h2>
         <p className="text-slate-400 font-tactical text-xs mb-6">
-          Un rival te noqueó en la zona de combate.
+          La partida ha terminado sin tu victoria.
         </p>
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 gap-3 mb-6">
-          <div className="hud-glass p-3 rounded-xl border border-white/10">
-            <span className="text-[10px] font-mono text-slate-400 block mb-1">POSICIÓN FINAL</span>
-            <span className="font-display text-2xl text-white">TOP #{rank}</span>
-          </div>
-          <div className="hud-glass p-3 rounded-xl border border-white/10">
-            <span className="text-[10px] font-mono text-slate-400 block mb-1">BAJAS LOGRADAS</span>
-            <span className="font-display text-2xl text-cyan-glow">{kills < 10 ? `0${kills}` : kills}</span>
-          </div>
+        <div className="hud-glass p-3 rounded-xl border border-white/10 mb-6">
+          <span className="text-[10px] font-mono text-slate-400 block mb-1">GANADOR</span>
+          <span className="font-display text-2xl text-white">{winnerLabel}</span>
         </div>
 
+        {matchInfo && <p className="text-[11px] font-mono text-slate-400 mb-3">TIPO: {matchInfo}</p>}
+        {stats && (
+          <p className="text-sm font-mono text-slate-200 mb-6">
+            Eliminaciones <span className="text-white font-bold">{stats.kills}</span> · Muertes <span className="font-bold">{stats.deaths}</span>
+          </p>
+        )}
+
         <div className="space-y-2.5">
+          {isHost ? (
+            <div className="grid grid-cols-2 gap-2.5">
+              <button
+                onClick={onRematch}
+                className="py-3 rounded-xl bg-crimson-glow hover:bg-red-500 text-white font-display text-sm tracking-wider shadow-[0_0_20px_#ff1744] flex items-center justify-center gap-2 transition-transform active:scale-95"
+              >
+                <RotateCcw className="w-4 h-4" />
+                REVANCHA
+              </button>
+              <button
+                onClick={onBackToLobby}
+                className="py-3 rounded-xl hud-glass hover:bg-white/10 text-slate-200 font-display text-sm tracking-wider border border-white/15 transition-colors"
+              >
+                VOLVER AL LOBBY
+              </button>
+            </div>
+          ) : (
+            <p className="text-xs font-mono text-slate-400">Esperando al host</p>
+          )}
           <button
-            onClick={onRestart}
-            className="w-full py-3 rounded-xl bg-crimson-glow hover:bg-red-500 text-white font-display text-base tracking-wider shadow-[0_0_20px_#ff1744] flex items-center justify-center gap-2 transition-transform active:scale-95"
-          >
-            <RotateCcw className="w-4 h-4" />
-            REINTENTAR PARTIDA
-          </button>
-          <button
-            onClick={onSpectate}
+            onClick={onLeave}
             className="w-full py-2.5 rounded-xl hud-glass hover:bg-white/10 text-slate-300 font-tactical text-xs border border-white/10 flex items-center justify-center gap-2 transition-colors"
           >
-            <Eye className="w-4 h-4 text-cyan-glow" />
-            ESPECTEAR COMBATE RESTANTE
+            <LogOut className="w-4 h-4" />
+            SALIR A LAS SALAS
           </button>
         </div>
       </div>
